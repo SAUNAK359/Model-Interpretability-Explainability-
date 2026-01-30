@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Me-API Playground</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans p-8">
+    <div class="max-w-4xl mx-auto">
+        <header id="profile-header" class="mb-8 p-6 bg-white rounded shadow-sm border border-gray-200">
+            <h1 class="text-3xl font-bold text-blue-600 mb-2">Loading...</h1>
+        </header>
+
+        <div class="mb-6 flex gap-2">
+            <input type="text" id="search-box" placeholder="Search projects (e.g., 'API')" 
+                class="flex-1 p-3 border rounded shadow-sm focus:ring-2 focus:ring-blue-500 outline-none">
+            <button onclick="fetchProjects()" class="bg-blue-600 text-white px-6 py-2 rounded font-medium hover:bg-blue-700">Search</button>
+        </div>
+
+        <div id="skill-filters" class="flex gap-2 flex-wrap mb-8">
+            </div>
+
+        <div id="projects-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            </div>
+    </div>
+
+    <script>
+        const API_URL = ""; // Relative path works since frontend is served by backend
+
+        async function loadProfile() {
+            const res = await fetch(`${API_URL}/profile`);
+            const data = await res.json();
+            document.getElementById('profile-header').innerHTML = `
+                <h1 class="text-3xl font-bold text-gray-900">${data.name}</h1>
+                <p class="text-lg text-gray-600">${data.role}</p>
+                <div class="mt-4 flex gap-4 text-blue-600">
+                    <a href="${data.github}" target="_blank" class="hover:underline">GitHub</a>
+                    <a href="${data.linkedin}" target="_blank" class="hover:underline">LinkedIn</a>
+                </div>
+            `;
+        }
+
+        async function loadSkills() {
+            const res = await fetch(`${API_URL}/skills`);
+            const skills = await res.json();
+            const container = document.getElementById('skill-filters');
+            container.innerHTML = skills.map(s => 
+                `<button onclick="filterBySkill('${s.name}')" class="px-3 py-1 bg-gray-200 rounded-full text-sm hover:bg-gray-300 transition">${s.name}</button>`
+            ).join('');
+        }
+
+        async function fetchProjects(skill = '') {
+            const query = document.getElementById('search-box').value;
+            let url = `${API_URL}/projects?`;
+            if (skill) url += `skill=${encodeURIComponent(skill)}&`;
+            if (query) url += `q=${encodeURIComponent(query)}`;
+
+            const res = await fetch(url);
+            const projects = await res.json();
+            
+            const grid = document.getElementById('projects-grid');
+            if (projects.length === 0) {
+                grid.innerHTML = '<p class="text-gray-500">No projects found.</p>';
+                return;
+            }
+            grid.innerHTML = projects.map(p => `
+                <div class="bg-white p-6 rounded border hover:shadow-md transition">
+                    <h3 class="text-xl font-bold mb-2">${p.title}</h3>
+                    <p class="text-gray-600 mb-4">${p.description}</p>
+                    <div class="text-xs text-gray-400 uppercase tracking-wide mb-4">${p.tags}</div>
+                    ${p.link ? `<a href="${p.link}" target="_blank" class="text-blue-500 hover:underline">View Code &rarr;</a>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function filterBySkill(skill) {
+            document.getElementById('search-box').value = '';
+            fetchProjects(skill);
+        }
+
+        // Init
+        loadProfile();
+        loadSkills();
+        fetchProjects();
+    </script>
+</body>
+</html>
